@@ -83,4 +83,5 @@
             <url>https://api.bintray.com/maven/tango-controls/maven/${project.artifactId}/;publish=1</url>
         </repository>
     </distributionManagement>
+
 </project>
