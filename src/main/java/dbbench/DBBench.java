@@ -42,6 +42,10 @@ public class DBBench extends JFrame {
     Color.yellow,
     Color.black};
 
+  // Relase number
+  public static final String DEFAULT_VERSION = "-.-";
+  public static final String VERSION = getVersion();
+
   public DBBench(String dbName,boolean runningFromShell) {
 
     this.runningFromShell = runningFromShell;
@@ -128,7 +132,7 @@ public class DBBench extends JFrame {
 
     getContentPane().setPreferredSize(new Dimension(800, 480));
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    setTitle("DBBench");
+    setTitle("DBBench " + VERSION);
 
   }
 
@@ -266,6 +270,15 @@ public class DBBench extends JFrame {
     }
     return si;
 
+  }
+
+  private static String getVersion(){
+    Package p = DBBench.class.getPackage();
+
+    //if version is set in MANIFEST.mf
+    if(p.getImplementationVersion() != null) return p.getImplementationVersion();
+
+    return DEFAULT_VERSION;
   }
 
   public static void main(String[] args) {
