@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Date;
 import javax.swing.*;
 
+import com.sun.codemodel.internal.JOp;
 import fr.esrf.tangoatk.widget.util.ATKGraphicsUtils;
 import fr.esrf.tangoatk.widget.util.chart.*;
 import fr.esrf.tangoatk.widget.util.ErrorPane;
@@ -28,6 +29,7 @@ public class DBBench extends JFrame {
   private double oldTime = -1.0;
   private double[] oldValues;
   private int nbSignal;
+  private int refreshPeriod=1000;
   private ArrayList<StatInfo> allCalls;
   private StatFrame statFrame = null;
   private boolean runningFromShell;
@@ -72,6 +74,15 @@ public class DBBench extends JFrame {
       }
     });
     viewMenu.add(statMenu);
+
+    JMenuItem periodMenu = new JMenuItem("Refresh period");
+    periodMenu.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        editRefreshPeriod();
+      }
+    });
+    viewMenu.add(periodMenu);
 
     setJMenuBar(menuBar);
 
@@ -120,7 +131,7 @@ public class DBBench extends JFrame {
           if( isVisible() )
             refresh();
           try {
-            Thread.sleep(1000);
+            Thread.sleep(refreshPeriod);
           } catch (InterruptedException e) {
           }
         }
@@ -134,6 +145,12 @@ public class DBBench extends JFrame {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setTitle("DBBench " + VERSION);
 
+  }
+
+  private void editRefreshPeriod() {
+    String newPeriod = JOptionPane.showInputDialog(this,"Enter refresh period (ms)",refreshPeriod);
+    if(newPeriod!=null)
+      refreshPeriod = Integer.parseInt(newPeriod);
   }
 
   private void refresh() {
