@@ -64,8 +64,22 @@ public class StatInfo implements Comparable {
   public String getCmdLine() {
 
     if(cmdLine==null) {
-      String PID = extractPID();
-      cmdLine = PID + "  " + execCommand(host, "xargs -0 < /proc/"+extractPID()+"/cmdline");
+
+      final String PID = extractPID();
+      if(PID==null) {
+        cmdLine = "Failed to get PID";
+        return cmdLine;
+      }
+
+      cmdLine = PID + " Waiting...";
+
+      new Thread(new Runnable() {
+        @Override
+        public void run() {
+          cmdLine = PID + "  " + execCommand(host, "xargs -0 < /proc/"+extractPID()+"/cmdline");
+        }
+      }).start();
+
     }
     return cmdLine;
 
