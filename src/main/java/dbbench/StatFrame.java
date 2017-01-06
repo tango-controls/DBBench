@@ -19,13 +19,16 @@ import java.util.ArrayList;
 
 public class StatFrame extends JFrame implements MouseListener {
 
+  static String defaultUser = null;
+  static String defaultPassword = null;
+
   private JTable              table;
   private DefaultTableModel   model;
   private JCheckBox           update;
   private ArrayList<StatInfo> calls;
   private StatInfo selected = new StatInfo();
   private Object[][] data=null;
-
+  private boolean showCmdLine = false;
 
   class HostTableRenderer extends JPanel implements TableCellRenderer
   {
@@ -90,6 +93,20 @@ public class StatFrame extends JFrame implements MouseListener {
     btnPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
     btnPanel.setBorder(BorderFactory.createEtchedBorder());
 
+    JCheckBox processNameBtn = new JCheckBox("Show process name");
+    processNameBtn.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        if( !getUser() ) {
+          showCmdLine = false;
+        } else {
+          showCmdLine = ((JCheckBox)e.getSource()).isSelected();
+        }
+      }
+    });
+    btnPanel.add(processNameBtn);
+
+
     update = new JCheckBox("Refresh");
     update.setSelected(true);
     btnPanel.add(update);
@@ -130,29 +147,38 @@ public class StatFrame extends JFrame implements MouseListener {
     refresh();
   }
 
-  public void launchTerminal(String host) {
+  private boolean getUser() {
 
-    JSSHTerminal.MainPanel terminal;
-    String defaultUser = null;
-    String defaultPassword = null;
-    try {
-      Database db = ApiUtil.get_db_obj();
-      DbDatum dd = db.get_property("Astor","RloginUser");
-      if(!dd.is_empty())
-        defaultUser = dd.extractString();
-      dd = db.get_property("Astor","RloginPassword");
-      if(!dd.is_empty())
-        defaultPassword = dd.extractString();
-    } catch (DevFailed e) {}
+    if(defaultUser==null) {
+      try {
+        Database db = ApiUtil.get_db_obj();
+        DbDatum dd = db.get_property("Astor","RloginUser");
+        if(!dd.is_empty())
+          defaultUser = dd.extractString();
+        dd = db.get_property("Astor","RloginPassword");
+        if(!dd.is_empty())
+          defaultPassword = dd.extractString();
+      } catch (DevFailed e) {}
+    }
 
-    if(defaultUser!=null) {
+    if(defaultUser==null)
+      JOptionPane.showMessageDialog(this, "No username !\nAStor/RloginUser free property not defined.", "Error", JOptionPane.ERROR_MESSAGE);
+
+    return defaultUser != null;
+
+  }
+
+  public void launchTerminal(String host,String pid) {
+
+    if( getUser() ) {
+      JSSHTerminal.MainPanel terminal;
       terminal = new JSSHTerminal.MainPanel(host,defaultUser,defaultPassword,80,24,500);
       terminal.setX11Forwarding(true);
       terminal.setExitOnClose(false);
+      if(pid!=null)
+        terminal.setCommand("ps -ef | grep " + pid);
       ATKGraphicsUtils.centerFrameOnScreen(terminal);
       terminal.setVisible(true);
-    } else {
-      JOptionPane.showMessageDialog(this, "No username !\nAStor/RloginUser free property not defined.", "Error", JOptionPane.ERROR_MESSAGE);
     }
 
   }
@@ -171,7 +197,10 @@ public class StatFrame extends JFrame implements MouseListener {
           for (int i = 0; i < calls.size(); i++) {
             StatInfo si = calls.get(i);
             data[i][0] = si.name;
-            data[i][1] = si.pid;
+            if(showCmdLine)
+              data[i][1] = si.getCmdLine();
+            else
+              data[i][1] = si.pid;
             data[i][2] = si.host;
             data[i][3] = si.count;
             if (si.equals(selected))
@@ -191,6 +220,7 @@ public class StatFrame extends JFrame implements MouseListener {
 
   }
 
+
   @Override
   public void mouseClicked(MouseEvent e) {
     if(SwingUtilities.isLeftMouseButton(e)) {
@@ -203,8 +233,9 @@ public class StatFrame extends JFrame implements MouseListener {
           selected.host = (String)data[r][2];
           int[] c = getColForLocation(e.getX());
           if(c != null && c[0]==2) {
-            if((c[2]-c[1])<30)
-              launchTerminal(selected.host);
+            if((c[2]-c[1])<30) {
+              launchTerminal(selected.host,selected.extractPID());
+            }
           }
         }
       }
@@ -230,6 +261,7 @@ public class StatFrame extends JFrame implements MouseListener {
   public void mouseExited(MouseEvent e) {
 
   }
+
 
   private int[] getColForLocation(int x) {
 
