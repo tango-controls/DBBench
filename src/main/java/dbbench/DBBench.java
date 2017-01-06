@@ -3,6 +3,8 @@ package dbbench;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -10,7 +12,6 @@ import java.util.Collections;
 import java.util.Date;
 import javax.swing.*;
 
-import com.sun.codemodel.internal.JOp;
 import fr.esrf.tangoatk.widget.util.ATKGraphicsUtils;
 import fr.esrf.tangoatk.widget.util.chart.*;
 import fr.esrf.tangoatk.widget.util.ErrorPane;
@@ -44,22 +45,29 @@ public class DBBench extends JFrame {
     Color.yellow,
     Color.black};
 
-  // Relase number
+  // Release number
   public static final String DEFAULT_VERSION = "-.-";
   public static final String VERSION = getVersion();
+  private static final int minPeriod = 100;
 
   public DBBench(String dbName,boolean runningFromShell) {
 
     this.runningFromShell = runningFromShell;
+    this.addWindowListener(new WindowAdapter() {
+      public void windowClosing(WindowEvent evt) {
+        exitFrame();
+      }
+    });
+
     // Menu Bar
     JMenuBar menuBar = new JMenuBar();
     JMenu fileMenu = new JMenu("File");
     menuBar.add(fileMenu);
-    JMenuItem exitMenu = new JMenuItem("Exit");
+    final JMenuItem exitMenu = new JMenuItem("Exit");
     exitMenu.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        System.exit(0);
+        exitFrame();
       }
     });
     fileMenu.add(exitMenu);
@@ -108,7 +116,7 @@ public class DBBench extends JFrame {
       dvNames = da.extractStringArray();
     } catch (DevFailed e) {
       ErrorPane.showErrorMessage(null,dbName,e);
-      System.exit(0);
+      exitFrame();
     }
 
     nbSignal = dvNames.length;
@@ -142,15 +150,21 @@ public class DBBench extends JFrame {
     getContentPane().add(chart, BorderLayout.CENTER);
 
     getContentPane().setPreferredSize(new Dimension(800, 480));
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setTitle("DBBench " + VERSION);
-
   }
 
   private void editRefreshPeriod() {
     String newPeriod = JOptionPane.showInputDialog(this,"Enter refresh period (ms)",refreshPeriod);
-    if(newPeriod!=null)
-      refreshPeriod = Integer.parseInt(newPeriod);
+    if(newPeriod!=null) {
+      int period = Integer.parseInt(newPeriod);
+      if (period<minPeriod) {
+        ErrorPane.showErrorMessage(this,
+                "Period to short", new Exception("Period must be equal or higher than "+minPeriod));
+      }
+      else {
+        refreshPeriod = Integer.parseInt(newPeriod);
+      }
+    }
   }
 
   private void refresh() {
@@ -205,6 +219,7 @@ public class DBBench extends JFrame {
       System.exit(0);
     } else {
       setVisible(false);
+      dispose();
     }
   }
 
